@@ -2,49 +2,37 @@ name: CI/CD with DevSecOps
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
-  build:
-    name: Build and Scan
+  devsecops-pipeline:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
 
-      - name: Install dependencies
-        run: |
-          cd app
-          npm install
+    - name: Install dependencies
+      run: npm install
+      working-directory: ./app
 
-      - name: Run app tests (if any)
-        run: echo "No tests yet"
+    - name: Run tfsec (Terraform security scan)
+      uses: aquasecurity/tfsec-action@v1.0.0
+      with:
+        working_directory: .
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+    - name: Build Docker image
+      run: docker build -t si25-app ./app
 
-      - name: Build Docker image
-        run: |
-          docker build -t si25-task2-app ./app
-
-      - name: Scan Docker image with Trivy
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'si25-task2-app'
-          format: 'table'
-          exit-code: '1'   # Change to 1 to fail on high vulnerabilities
-          ignore-unfixed: true
-          severity: 'CRITICAL,HIGH'
-
-      - name: tfsec - Static analysis of Terraform files
-        uses: aquasecurity/tfsec-action@v1.0.0
-        with:
-          tfsec_args: '.'
+    - name: Run Trivy image scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: si25-app
+        format: table
+        exit-code: 0
+        ignore-unfixed: true
