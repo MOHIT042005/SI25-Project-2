@@ -1,38 +1,40 @@
-name: CI/CD with DevSecOps
+name: CI/CD Pipeline with Security Scanning
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-  devsecops-pipeline:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
+    - name: Checkout source code
       uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-
-    - name: Install dependencies
-      run: npm install
-      working-directory: ./app
-
-    - name: Run tfsec (Terraform security scan)
+    # 🔐 Step 1: tfsec - Terraform scanning
+    - name: Run tfsec on Terraform code
       uses: aquasecurity/tfsec-action@v1.0.0
       with:
-        working_directory: .
+        working_directory: ./
 
+    # 🐳 Step 2: Set up Docker
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    # 🛠️ Step 3: Build Docker image
     - name: Build Docker image
-      run: docker build -t si25-app ./app
+      run: |
+        cd app
+        docker build -t si25-task2-app .
 
-    - name: Run Trivy image scan
+    # 🔍 Step 4: Trivy - Docker image scanning
+    - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: si25-app
-        format: table
-        exit-code: 0
-        ignore-unfixed: true
+        image-ref: 'si25-task2-app'
+        format: 'table'
+        exit-code: '1'
+        severity: 'CRITICAL,HIGH'
