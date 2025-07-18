@@ -9,6 +9,7 @@
   "author": "Your Name",
   "license": "ISC",
   "dependencies": {
+    "cross-spawn": "^7.0.5",
     "express": "^5.1.0"
   }
 }
